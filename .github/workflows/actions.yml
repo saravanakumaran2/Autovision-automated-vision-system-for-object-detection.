@@ -1,4 +1,5 @@
 name: Kubernetes Cluster Setup
+
 on:
   push:
     branches:
@@ -10,13 +11,12 @@ jobs:
     name: Setup Master Node (yolvo-master)
     outputs:
       join_command: ${{ steps.get_join_command.outputs.join_command }}
-
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Setup Kubernetes Master Node
-        uses: ./custom-actions/k8s
+      - name: Setup Master Node
+        uses: ./custom-actions/master
 
       - name: Extract kubeadm join command
         id: get_join_command
@@ -32,3 +32,30 @@ jobs:
         with:
           name: join-command
           path: join_command.txt
+
+  worker-join:
+    runs-on: [self-hosted, worker]
+    name: Join Worker Node (yolvo-worker)
+    needs: master-setup
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Download join command artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: join-command
+          path: .
+
+      - name: Setup Worker Node and Join Cluster
+        uses: ./custom-actions/worker
+
+  verify-cluster:
+    runs-on: [self-hosted, master]
+    name: Verify Cluster Nodes
+    needs: worker-join
+    steps:
+      - name: Check node status
+        run: |
+          echo "📦 Current nodes in the cluster:"
+          kubectl get nodes -o wide
