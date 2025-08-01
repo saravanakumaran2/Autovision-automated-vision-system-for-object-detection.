@@ -1,4 +1,4 @@
-# 🧠 YOLOv5 Object Detection in Kubernetes 🚀
+## 🧠 YOLOv5 Object Detection in Kubernetes 🚀
 
 This project shows how to run a YOLOv5-based object detection app inside a **Kubernetes cluster**.  
 It uses:
