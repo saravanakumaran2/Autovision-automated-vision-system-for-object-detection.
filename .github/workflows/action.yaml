@@ -59,3 +59,26 @@ jobs:
         run: |
           echo "📦 Current nodes in the cluster:"
           kubectl get nodes -o wide
+
+    deploy-helm:
+    name: Run Helmfile and Show Pods
+    runs-on: [self-hosted, master]  # Make sure your master node is a self-hosted runner
+    needs: master-setup  # Only if you have another job named master-setup
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Move to Helm Directory
+        run: cd ./helm
+
+      - name: Run Helmfile Sync
+        run: |
+          cd ./helm
+          echo "Running helmfile sync..."
+          helmfile sync
+
+      - name: Show Running Pods
+        run: |
+          echo "Showing running pods..."
+          kubectl get pods -A
+
