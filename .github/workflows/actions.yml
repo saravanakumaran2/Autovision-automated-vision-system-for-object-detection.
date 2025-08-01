@@ -1,5 +1,4 @@
 name: Kubernetes Cluster Setup
-
 on:
   push:
     branches:
