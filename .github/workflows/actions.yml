@@ -94,6 +94,12 @@ jobs:
           echo "Running join command: $join_command"
           sudo $join_command
 
-      - name: Verify node status (from master node)
+  verify-cluster:
+    runs-on: [self-hosted, master]
+    name: Verify Cluster Nodes
+    needs: worker-join
+    steps:
+      - name: Check node status
         run: |
-          echo "To verify, run 'kubectl get nodes' from the master node."
+          echo "📦 Current nodes in the cluster:"
+          kubectl get nodes -o wide
