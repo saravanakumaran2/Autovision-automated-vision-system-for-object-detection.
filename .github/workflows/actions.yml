@@ -37,24 +37,25 @@ jobs:
 
         sudo mkdir -p /etc/containerd
         containerd config default | sudo tee /etc/containerd/config.toml
-
-        sudo sed -i 's/^            SystemdCgroup = false/            SystemdCgroup = true/' /etc/containerd/config.toml
+        sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
 
         sudo systemctl restart containerd
         sudo systemctl enable containerd
 
+        # Add Kubernetes APT repo
         curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
-
         echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
         sudo apt-get update
 
-        K8S_VERSION="1.29.15-00"
+        # Get latest available v1.29 version
+        K8S_VERSION=$(apt-cache madison kubeadm | grep 1.29 | head -1 | awk '{print $3}')
+
+        # Install Kubernetes tools
         sudo apt-get install -y kubelet=$K8S_VERSION kubeadm=$K8S_VERSION kubectl=$K8S_VERSION
         sudo apt-mark hold kubelet kubeadm kubectl
 
     - name: Initialize Kubernetes Master
-      id: kubeadm-init
       run: |
         sudo kubeadm reset -f
         sudo kubeadm init --pod-network-cidr=10.244.0.0/16
@@ -64,9 +65,8 @@ jobs:
         sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
         kubeadm token create --print-join-command > join_command.sh
-        cat join_command.sh
 
-    - name: Upload Join Command for Workers
+    - name: Upload Join Command
       uses: actions/upload-artifact@v4
       with:
         name: join-command
@@ -104,29 +104,30 @@ jobs:
 
         sudo mkdir -p /etc/containerd
         containerd config default | sudo tee /etc/containerd/config.toml
-
-        sudo sed -i 's/^            SystemdCgroup = false/            SystemdCgroup = true/' /etc/containerd/config.toml
+        sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
 
         sudo systemctl restart containerd
         sudo systemctl enable containerd
 
+        # Add Kubernetes APT repo
         curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
-
         echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
         sudo apt-get update
 
-        K8S_VERSION="1.29.15-00"
+        # Get latest available v1.29 version
+        K8S_VERSION=$(apt-cache madison kubeadm | grep 1.29 | head -1 | awk '{print $3}')
+
         sudo apt-get install -y kubelet=$K8S_VERSION kubeadm=$K8S_VERSION kubectl=$K8S_VERSION
         sudo apt-mark hold kubelet kubeadm kubectl
 
-    - name: Download Join Command from Master
+    - name: Download Join Command
       uses: actions/download-artifact@v4
       with:
         name: join-command
         path: .
 
-    - name: Run Join Command to Join Cluster
+    - name: Run Join Command
       run: |
         chmod +x join_command.sh
         sudo ./join_command.sh
