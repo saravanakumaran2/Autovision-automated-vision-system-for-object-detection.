@@ -1,10 +1,8 @@
 name: Kubernetes Cluster Setup
-
 on:
   push:
     branches:
       - develop
-
 jobs:
   master-setup:
     runs-on: [self-hosted, master]
@@ -14,10 +12,10 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-
+        
       - name: Setup Master Node
         uses: ./custom-actions/master
-
+        
       - name: Extract kubeadm join command
         id: get_join_command
         run: |
@@ -57,7 +55,7 @@ jobs:
     steps:
       - name: Check node status
         run: |
-          echo "📦 Current nodes in the cluster:"
+          echo "Current nodes in the cluster:"
           kubectl get nodes -o wide
 
   deploy-helm:
@@ -74,7 +72,13 @@ jobs:
           echo "Running helmfile sync..."
           helmfile sync
 
+      - name: Wait for all pods to be running
+        run: |
+          echo "Waiting for all pods to be in 'Running' or 'Completed' state..."
+          kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=120s || echo "Some pods did not become ready in time."
+
       - name: Show Running Pods
         run: |
           echo "Showing running pods..."
-          kubectl get pods -A
+          kubectl get pods -A -o wide
+
