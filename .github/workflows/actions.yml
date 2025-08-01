@@ -1,4 +1,4 @@
-name: Kubernetes Cluster Setup
+name: Kubernetes Cluster Setups
 
 on:
   push:
