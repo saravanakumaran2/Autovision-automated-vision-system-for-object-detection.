@@ -33,7 +33,8 @@ jobs:
 
         sudo sysctl --system
 
-        sudo apt-get update && sudo apt-get install -y containerd apt-transport-https ca-certificates curl gnupg
+        sudo apt-get update
+        sudo apt-get install -y containerd apt-transport-https ca-certificates curl gnupg conntrack
 
         sudo mkdir -p /etc/containerd
         containerd config default | sudo tee /etc/containerd/config.toml
@@ -48,7 +49,9 @@ jobs:
         echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
         sudo apt-get update
-        sudo apt-get install -y kubelet kubeadm kubectl
+
+        K8S_VERSION="1.29.15-00"
+        sudo apt-get install -y kubelet=$K8S_VERSION kubeadm=$K8S_VERSION kubectl=$K8S_VERSION
         sudo apt-mark hold kubelet kubeadm kubectl
 
     - name: Initialize Kubernetes Master
@@ -61,7 +64,6 @@ jobs:
         sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
         sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
-        # Extract the join command for workers
         kubeadm token create --print-join-command > join_command.sh
         cat join_command.sh
 
@@ -73,7 +75,7 @@ jobs:
 
   setup-worker:
     name: Setup Kubernetes Worker
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, k8s-worker]
     needs: setup-master
 
     steps:
@@ -98,7 +100,8 @@ jobs:
 
         sudo sysctl --system
 
-        sudo apt-get update && sudo apt-get install -y containerd apt-transport-https ca-certificates curl gnupg
+        sudo apt-get update
+        sudo apt-get install -y containerd apt-transport-https ca-certificates curl gnupg conntrack
 
         sudo mkdir -p /etc/containerd
         containerd config default | sudo tee /etc/containerd/config.toml
@@ -113,7 +116,9 @@ jobs:
         echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
         sudo apt-get update
-        sudo apt-get install -y kubelet kubeadm kubectl
+
+        K8S_VERSION="1.29.15-00"
+        sudo apt-get install -y kubelet=$K8S_VERSION kubeadm=$K8S_VERSION kubectl=$K8S_VERSION
         sudo apt-mark hold kubelet kubeadm kubectl
 
     - name: Download Join Command from Master
