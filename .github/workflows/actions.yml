@@ -1,5 +1,10 @@
 name: Kubernetes Cluster Setup
 
+on:
+  push:
+    branches:
+      - develop   # run on pushes to develop branch, change as needed
+
 jobs:
   master-setup:
     runs-on: [self-hosted, yolvo-master]
