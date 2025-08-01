@@ -5,7 +5,7 @@ on:
 
 jobs:
   master-setup:
-    runs-on: [self-hosted, master-node]
+    runs-on: [self-hosted, yolvo-master]
     name: Setup Master Node (yolvo-master)
     outputs:
       join_command: ${{ steps.get_join_command.outputs.join_command }}
@@ -42,7 +42,7 @@ jobs:
           path: join_command.txt
 
   worker-join:
-    runs-on: [self-hosted, worker-node]
+    runs-on: [self-hosted, yolvo-worker]
     name: Join Worker Node (yolvo-worker)
     needs: master-setup
     steps:
