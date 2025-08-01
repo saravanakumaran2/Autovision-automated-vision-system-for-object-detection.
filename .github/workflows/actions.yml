@@ -1,4 +1,4 @@
-name: Kubernetes Dev Cluster Setup
+name: Kubernetes Cluster Setup with kubeadm
 
 on:
   push:
@@ -6,64 +6,118 @@ on:
       - develop
 
 jobs:
-  setup-k8s-cluster:
-    runs-on: ubuntu-latest
-    name: Setup Kubernetes Master + Worker (KinD)
+  master-node:
+    runs-on: [self-hosted, k8s-master]
+    name: Setup Kubernetes Master Node
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Install Docker (safe method)
-      run: |
-        sudo apt-get update
-        sudo apt-get remove -y docker docker-engine docker.io containerd runc moby*
-        sudo apt-get install -y \
-          ca-certificates \
-          curl \
-          gnupg \
-          lsb-release
+      - name: Prepare system and install Kubernetes packages
+        run: |
+          sudo apt update && sudo apt upgrade -y
+          sudo swapoff -a
+          sudo sed -i '/ swap / s/^/#/' /etc/fstab
 
-        sudo mkdir -p /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+          overlay
+          br_netfilter
+          EOF
 
-        echo \
-        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-        $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo modprobe overlay
+          sudo modprobe br_netfilter
 
-        sudo apt-get update
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+          cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.bridge.bridge-nf-call-iptables = 1
+          net.ipv4.ip_forward = 1
+          EOF
 
-    - name: Check Docker Version and Status
-      run: |
-        docker --version
-        sudo systemctl start docker
-        sudo systemctl enable docker
+          sudo sysctl --system
 
-    - name: Install KinD
-      run: |
-        curl -Lo kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
-        chmod +x kind
-        sudo mv kind /usr/local/bin/kind
+          sudo apt install -y containerd apt-transport-https ca-certificates curl gnupg
 
-    - name: Install kubectl
-      run: |
-        export KUBECTL_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt)
-        curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
-        chmod +x kubectl
-        sudo mv kubectl /usr/local/bin/kubectl
+          sudo mkdir -p /etc/containerd
+          containerd config default | sudo tee /etc/containerd/config.toml
+          sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+          sudo systemctl restart containerd
+          sudo systemctl enable containerd
 
-    - name: Create Kubernetes Cluster (1 Master, 1 Worker)
-      run: |
-        cat <<EOF > kind-config.yaml
-        kind: Cluster
-        apiVersion: kind.x-k8s.io/v1alpha4
-        nodes:
-        - role: control-plane
-        - role: worker
-        EOF
+          curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+          echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
-        kind create cluster --name object-detection-dev --config kind-config.yaml
+          sudo apt update
+          sudo apt install -y kubelet kubeadm kubectl
+          sudo apt-mark hold kubelet kubeadm kubectl
 
-    - name: Verify Cluster Nodes
-      run: kubectl get nodes
+      - name: Initialize Kubernetes master node
+        run: |
+          sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+
+      - name: Setup kubeconfig for user
+        run: |
+          mkdir -p $HOME/.kube
+          sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+          sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+      - name: Install Flannel network plugin
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+      - name: Get join command
+        id: get_join_command
+        run: |
+          kubeadm token create --print-join-command > join_command.sh
+          echo "::set-output name=join_cmd::$(cat join_command.sh)"
+
+  worker-node:
+    runs-on: [self-hosted, k8s-worker]
+    needs: master-node
+    name: Setup Kubernetes Worker Node
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Prepare system and install Kubernetes packages
+        run: |
+          sudo apt update && sudo apt upgrade -y
+          sudo swapoff -a
+          sudo sed -i '/ swap / s/^/#/' /etc/fstab
+
+          cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+          overlay
+          br_netfilter
+          EOF
+
+          sudo modprobe overlay
+          sudo modprobe br_netfilter
+
+          cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.bridge.bridge-nf-call-iptables = 1
+          net.ipv4.ip_forward = 1
+          EOF
+
+          sudo sysctl --system
+
+          sudo apt install -y containerd apt-transport-https ca-certificates curl gnupg
+
+          sudo mkdir -p /etc/containerd
+          containerd config default | sudo tee /etc/containerd/config.toml
+          sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+          sudo systemctl restart containerd
+          sudo systemctl enable containerd
+
+          curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg
+          echo "deb [signed-by=/etc/apt/trusted.gpg.d/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+          sudo apt update
+          sudo apt install -y kubelet kubeadm kubectl
+          sudo apt-mark hold kubelet kubeadm kubectl
+
+      - name: Join worker to master cluster
+        run: |
+          echo "${{ needs.master-node.outputs.join_cmd }}" > join.sh
+          sudo bash join.sh
