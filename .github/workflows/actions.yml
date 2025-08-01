@@ -5,9 +5,8 @@ on:
 
 jobs:
   master-setup:
-    runs-on: self-hosted
+    runs-on: [self-hosted, master-node]
     name: Setup Master Node (yolvo-master)
-    if: runner.name == 'yolvo-master'
     outputs:
       join_command: ${{ steps.get_join_command.outputs.join_command }}
     steps:
@@ -30,7 +29,6 @@ jobs:
       - name: Extract kubeadm join command
         id: get_join_command
         run: |
-          # Extract the join command from kubeadm-init.log
           join_cmd=$(grep -A2 "kubeadm join" kubeadm-init.log | tr -d '\r' | tr '\n' ' ')
           echo "::set-output name=join_command::$join_cmd"
 
@@ -43,10 +41,9 @@ jobs:
           path: join_command.txt
 
   worker-join:
-    runs-on: self-hosted
+    runs-on: [self-hosted, worker-node]
     name: Join Worker Node (yolvo-worker)
     needs: master-setup
-    if: runner.name == 'yolvo-worker'
     steps:
       - name: Download join command artifact
         uses: actions/download-artifact@v3
