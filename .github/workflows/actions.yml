@@ -1,8 +1,5 @@
 name: Kubernetes Cluster Setup
 
-on:
-  workflow_dispatch:
-
 jobs:
   master-setup:
     runs-on: [self-hosted, yolvo-master]
