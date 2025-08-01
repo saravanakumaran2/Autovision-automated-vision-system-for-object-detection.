@@ -77,7 +77,7 @@ jobs:
 
   setup-worker:
     name: Setup Kubernetes Worker
-    runs-on: [self-hosted, k8s-worker]
+    runs-on: ubuntu-latest
     needs: setup-master
 
     steps:
