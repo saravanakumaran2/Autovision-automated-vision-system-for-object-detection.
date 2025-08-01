@@ -1,3 +1,4 @@
+
 name: Kubernetes Cluster Setup
 
 on:
@@ -65,14 +66,14 @@ jobs:
         cat join_command.sh
 
     - name: Upload Join Command for Workers
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: join-command
         path: join_command.sh
 
   setup-worker:
     name: Setup Kubernetes Worker
-    runs-on: [self-hosted, k8s-worker]
+    runs-on: ubuntu-latest
     needs: setup-master
 
     steps:
@@ -116,7 +117,7 @@ jobs:
         sudo apt-mark hold kubelet kubeadm kubectl
 
     - name: Download Join Command from Master
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: join-command
         path: .
