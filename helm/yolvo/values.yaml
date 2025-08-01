@@ -71,5 +71,3 @@ yolvo:
   port: 80
   storage: 1Gi
 
-zabbix:
-  server: "zabbix-zabbix-server.monitoring.svc.cluster.local"
