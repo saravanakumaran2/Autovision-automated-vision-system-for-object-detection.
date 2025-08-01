@@ -1,4 +1,5 @@
 name: Kubernetes Cluster Setup
+
 on:
   workflow_dispatch:
 
@@ -34,7 +35,8 @@ jobs:
       - name: Save join command to file artifact
         run: echo "${{ steps.get_join_command.outputs.join_command }}" > join_command.txt
 
-      - uses: actions/upload-artifact@v3
+      - name: Upload join command artifact
+        uses: actions/upload-artifact@v3
         with:
           name: join-command
           path: join_command.txt
