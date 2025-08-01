@@ -11,43 +11,13 @@ jobs:
     name: Setup Master Node (yolvo-master)
     outputs:
       join_command: ${{ steps.get_join_command.outputs.join_command }}
+
     steps:
-      - name: Reset Kubernetes (clean slate)
-        run: |
-          sudo kubeadm reset -f
-          sudo rm -rf /etc/kubernetes/
-          sudo rm -rf /var/lib/etcd/
-          sudo rm -rf /var/lib/kubelet/*
-          sudo rm -rf /etc/cni/net.d/
-          sudo rm -rf /var/lib/cni/
-          sudo rm -rf $HOME/.kube/
-          sudo systemctl daemon-reexec
-          sudo systemctl restart containerd
-          sudo systemctl restart kubelet
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Initialize Kubernetes master
-        id: kubeinit
-        run: |
-          sudo kubeadm init --pod-network-cidr=10.244.0.0/16 | tee kubeadm-init.log
-
-      - name: Setup kubeconfig for kubectl
-        run: |
-          mkdir -p $HOME/.kube
-          sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-          sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
-      - name: Deploy Flannel CNI
-        run: |
-          kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
-
-      - name: Wait for all pods to be ready
-        run: |
-          echo "Waiting for system pods to become Ready..."
-          until kubectl get pods -n kube-system | grep -v 'Running\|Completed' | grep -v 'STATUS' | grep -q .; do
-            echo "Still waiting..."
-            sleep 5
-          done
-          echo "All system pods are now running."
+      - name: Setup Kubernetes Master Node
+        uses: ./custom-actions/k8s
 
       - name: Extract kubeadm join command
         id: get_join_command
@@ -63,43 +33,3 @@ jobs:
         with:
           name: join-command
           path: join_command.txt
-
-  worker-join:
-    runs-on: [self-hosted, worker]
-    name: Join Worker Node (yolvo-worker)
-    needs: master-setup
-    steps:
-      - name: Clean previous Kubernetes setup (optional)
-        run: |
-          sudo kubeadm reset -f
-          sudo rm -rf /etc/kubernetes/
-          sudo rm -rf /var/lib/etcd/
-          sudo rm -rf /var/lib/kubelet/*
-          sudo rm -rf /etc/cni/net.d/
-          sudo rm -rf /var/lib/cni/
-          sudo rm -rf $HOME/.kube/
-          sudo systemctl daemon-reexec
-          sudo systemctl restart containerd
-          sudo systemctl restart kubelet
-
-      - name: Download join command artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: join-command
-          path: .
-
-      - name: Join Kubernetes cluster
-        run: |
-          join_command=$(cat join_command.txt)
-          echo "Running join command: $join_command"
-          sudo $join_command
-
-  verify-cluster:
-    runs-on: [self-hosted, master]
-    name: Verify Cluster Nodes
-    needs: worker-join
-    steps:
-      - name: Check node status
-        run: |
-          echo "📦 Current nodes in the cluster:"
-          kubectl get nodes -o wide
