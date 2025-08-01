@@ -13,11 +13,9 @@ jobs:
     steps:
     - name: Prepare Master Node
       run: |
-        # Disable swap
         sudo swapoff -a
         sudo sed -i '/ swap / s/^/#/' /etc/fstab
 
-        # Kernel modules
         cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
         overlay
         br_netfilter
@@ -25,7 +23,6 @@ jobs:
         sudo modprobe overlay
         sudo modprobe br_netfilter
 
-        # sysctl params
         cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
         net.bridge.bridge-nf-call-ip6tables = 1
         net.bridge.bridge-nf-call-iptables = 1
@@ -33,7 +30,6 @@ jobs:
         EOF
         sudo sysctl --system
 
-        # Install containerd
         sudo apt-get update
         sudo apt-get install -y containerd apt-transport-https ca-certificates curl gnupg lsb-release conntrack
 
@@ -43,18 +39,15 @@ jobs:
         sudo systemctl restart containerd
         sudo systemctl enable containerd
 
-        # Add Kubernetes APT repo (official)
         sudo mkdir -p /etc/apt/keyrings
         curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
         echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
         sudo apt-get update
 
-        # Get the latest 1.29.x version available
         K8S_VERSION=$(apt-cache madison kubeadm | grep 1.29 | head -1 | awk '{print $3}')
         echo "Using Kubernetes version: $K8S_VERSION"
 
-        # Install kubelet, kubeadm, kubectl (allow downgrade if needed)
         sudo apt-get install -y --allow-downgrades kubelet=$K8S_VERSION kubeadm=$K8S_VERSION kubectl=$K8S_VERSION
         sudo apt-mark hold kubelet kubeadm kubectl
 
@@ -67,6 +60,13 @@ jobs:
         sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
         sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
+        # Set KUBECONFIG for this session
+        export KUBECONFIG=/etc/kubernetes/admin.conf
+
+        # Deploy Flannel CNI
+        kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+
+        # Save join command
         kubeadm token create --print-join-command > join_command.sh
 
     - name: Upload Join Command
