@@ -3,11 +3,11 @@ name: Kubernetes Cluster Setup
 on:
   push:
     branches:
-      - develop   # run on pushes to develop branch, change as needed
+      - develop
 
 jobs:
   master-setup:
-    runs-on: [self-hosted, yolvo-master]
+    runs-on: [self-hosted, master]
     name: Setup Master Node (yolvo-master)
     outputs:
       join_command: ${{ steps.get_join_command.outputs.join_command }}
@@ -44,7 +44,7 @@ jobs:
           path: join_command.txt
 
   worker-join:
-    runs-on: [self-hosted, yolvo-worker]
+    runs-on: [self-hosted, worker]
     name: Join Worker Node (yolvo-worker)
     needs: master-setup
     steps:
