@@ -3,7 +3,7 @@
 replicaCount: 1
 
 image:
-  repository: saravana227/yolov5-detector
+  repository: saravana227/testing
   pullPolicy: IfNotPresent
   tag: latest
 
@@ -67,7 +67,7 @@ affinity: {}
 
 yolvo:
   name: yolov5-detector
-  image: saravana227/yolov5-detector
+  image: saravana227/testing
   port: 80
   storage: 1Gi
 
