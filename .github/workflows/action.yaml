@@ -2,7 +2,7 @@ name: Kubernetes Cluster Setup
 on:
   push:
     branches:
-      - develop
+      - staging
 jobs:
   master-setup:
     runs-on: [self-hosted, master]
