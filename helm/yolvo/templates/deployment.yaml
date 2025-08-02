@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,23 +24,52 @@ spec:
             - mountPath: /app/output
               name: yolov5-volume
               subPath: output
-
-        - name: zabbix-agent
-          image: zabbix/zabbix-agent:alpine-latest
-          env:
-            - name: ZBX_SERVER_HOST
-              value: "{{ .Values.zabbix.server }}"   # this will come from values.yaml
-          ports:
-            - containerPort: 10050
-          volumeMounts:
-            - mountPath: /var/run
-              name: run-volume
-
-
       volumes:
         - name: yolov5-volume
           persistentVolumeClaim:
             claimName: yolov5-pvc
-
         - name: run-volume
           emptyDir: {}
+
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: yolov5-pv
+spec:
+  capacity:
+    storage: {{ .Values.yolvo.storage }}
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /mnt/yolov5-data
+
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: yolov5-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.yolvo.storage }}
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: yolov5-service
+spec:
+  selector:
+    app: yolov5
+  ports:
+    - name: yolvo-http
+      protocol: TCP
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.target }}
+
