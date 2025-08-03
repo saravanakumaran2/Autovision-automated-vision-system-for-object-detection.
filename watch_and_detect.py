@@ -1,7 +1,11 @@
 import time
 import os
 import subprocess
+<<<<<<< HEAD
 import shutil  
+=======
+import shutil  # <-- ADD THIS
+>>>>>>> parent of 6d26e73 (Merge branch 'staging' into develop)
 
 input_dir = "/app/input"
 processed_dir = "/app/processed"
@@ -19,7 +23,7 @@ def get_unprocessed_images():
 while True:
     images = get_unprocessed_images()
     if images:
-        print(f"Detected {len(images)} new image(s). Running detection...")
+        print(f"✅ Detected {len(images)} new image(s). Running detection...")
         for img in images:
             img_path = os.path.join(input_dir, img)
             subprocess.run([
@@ -30,8 +34,13 @@ while True:
                 "--name", "results",
                 "--exist-ok"
             ])
+<<<<<<< HEAD
             shutil.move(img_path, os.path.join(processed_dir, img))  
         print("Processing complete.")
+=======
+            shutil.move(img_path, os.path.join(processed_dir, img))  # <-- FIXED LINE
+        print("✅ Processing complete.")
+>>>>>>> parent of 6d26e73 (Merge branch 'staging' into develop)
     else:
         print("⏳ No new images. Sleeping 10 seconds...")
         time.sleep(10)
