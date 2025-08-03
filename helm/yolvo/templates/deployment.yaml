@@ -43,8 +43,6 @@ spec:
 
         - name: run-volume
           emptyDir: {}
-<<<<<<< HEAD
-=======
 
 
 ---
@@ -87,4 +85,4 @@ spec:
       protocol: TCP
       port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.target }}
->>>>>>> parent of 6d26e73 (Merge branch 'staging' into develop)
+
