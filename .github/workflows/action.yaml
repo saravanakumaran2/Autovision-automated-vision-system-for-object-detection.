@@ -60,8 +60,8 @@ jobs:
           echo "Current nodes in the cluster:"
           kubectl get nodes -o wide
 
-  deploy-helm:
-    name: Run Helmfile and Show Pods
+  testing:
+    name: Testing
     runs-on: [self-hosted, master]
     needs: verify-cluster
     steps:
