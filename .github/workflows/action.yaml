@@ -24,13 +24,13 @@ jobs:
           echo "join_command=$join_cmd" >> $GITHUB_OUTPUT
 
       - name: Save join command to file
-        run: echo "${{ steps.get_join_command.outputs.join_command }}" > join_command.txt
+        run: echo "${{ steps.get_join_command.outputs.join_command }}" > test_report.txt
 
       - name: Upload join command artifact
         uses: actions/upload-artifact@v4
         with:
           name: join-command
-          path: join_command.txt
+          path: test_report.txt
 
   worker-join:
     runs-on: [self-hosted, worker]
