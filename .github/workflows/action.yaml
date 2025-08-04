@@ -29,7 +29,7 @@ jobs:
       - name: Upload join command artifact
         uses: actions/upload-artifact@v4
         with:
-          name: join-command
+          name: test_report
           path: test_report.txt
 
   worker-join:
