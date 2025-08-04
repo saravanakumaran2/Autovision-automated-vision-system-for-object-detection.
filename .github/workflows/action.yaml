@@ -43,7 +43,7 @@ jobs:
       - name: Download join command artifact
         uses: actions/download-artifact@v4
         with:
-          name: join-command
+          name: test_report
           path: .
 
       - name: Setup Worker Node and Join Cluster
