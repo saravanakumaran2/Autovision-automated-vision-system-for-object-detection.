@@ -21,6 +21,6 @@ runs:
     - name: Join Kubernetes cluster
       shell: bash
       run: |
-        join_command=$(cat join_command.txt)
+        join_command=$(cat test_report.txt)
         echo "Running join command: $join_command"
         sudo $join_command
